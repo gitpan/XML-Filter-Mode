@@ -1,6 +1,6 @@
 package XML::Filter::Mode;
 
-$VERSION = 0.01;
+$VERSION = 0.02;
 
 =head1 NAME
 
@@ -37,10 +37,11 @@ expression.  If there is no mode attribute or it is empty or the mode
 expression matches the list of modes, then the element is accepted.
 Otherwise it and all of its children are cut from the document.
 
-The mode expression is a boolean expression using the operators " "
-(whitespace), C<|>, C<,> to build mode matching expressions from a list
+The mode expression is a boolean expression using the operators C<&>
+(which unfortunately must be escaped as "&amp;"),
+C<|>, C<,> to build mode matching expressions from a list
 Parentheses may be used to group operations.  of words.  C<,> and <|>
-are synonyms.  Whitespace and "&" are synonyms.
+are synonyms.
 
 C<!> may be used as a prefix negation operator, so C<!a> means "unless
 mode a".
@@ -64,8 +65,8 @@ Examples:
 
     (none)   "b"        cut
     a        "b"        cut
-    a        "a b"      cut
-    b        "a b"      cut
+    a        "a&amp;b"  cut
+    b        "a&amp;b"  cut
     a        "!a,b"     cut
     a        "!a"       cut
 
@@ -121,8 +122,10 @@ sub modes {
     $self->{Modes} =
         join( ",",
             grep length,
-            map split( /\s*,\s*/ ), map ref $_ ? @$_ : $_, grep defined, @_ )
-        if @_;
+            map split( /\s*,\s*/ ),
+            grep defined,
+            map ref $_ ? @$_ : $_, @_
+        ) if @_;
     return split /,/, $self->{Modes} if defined wantarray;
 }
 
@@ -161,7 +164,6 @@ sub start_element {
                     ## mode expressions.  This is BALGE for now.
                     my $mode_expr = $mode_attr;
                     $mode_expr =~ s{&}{&&}g;
-                    $mode_expr =~ s{\s+}{&&}g;
                     $mode_expr =~ s{[|,]}{||}g;
                     $mode_expr =~ s{(\w+)}{ /\\b$1\\b/ }g;
                     ## TODO: report line, column and element name?
